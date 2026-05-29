@@ -3,23 +3,25 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import sqlite3
 import os
 import random
-import string
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import uuid
-import os
-
-if __name__ == '__main__':
-    os.makedirs('uploads', exist_ok=True)
-    init_db()
-    port = int(os.environ.get('PORT', 5001))
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'campus_anonymous_chat_secret_key_2026'
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['DATABASE'] = 'chat_database.db'
+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+# semua function, route, dan socket handler di sini
+
+if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    init_db()
+    port = int(os.environ.get('PORT', 5001))
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt'}
