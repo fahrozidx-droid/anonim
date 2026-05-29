@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{{ room }} - Anonymous Chat{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-left-text-fill"></i> Ruangan: <strong>{{ room }}</strong>
+                </h5>
+                <a href="/" class="btn btn-sm btn-light">
+                    <i class="bi bi-arrow-left"></i> Kembali
+                </a>
+            </div>
+            
+            <div class="card-body" style="height: 500px; display: flex; flex-direction: column;">
+                <!-- Area Pesan -->
+                <div id="messages" class="flex-grow-1 overflow-auto mb-3 p-3 border rounded" 
+                     style="background-color: #f8f9fa;">
+                    <div class="text-center text-muted mt-5">
+                        <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Belum ada pesan. Jadilah yang pertama mengirim!</p>
+                    </div>
+                </div>
+
+                <!-- Form Input Pesan -->
+                <div class="input-group">
+                    <input type="text" id="messageInput" class="form-control" 
+                           placeholder="Ketik pesan Anda..." autocomplete="off">
+                    <button id="sendBtn" class="btn btn-primary" onclick="sendMessage()">
+                        <i class="bi bi-send-fill"></i> Kirim
+                    </button>
+                </div>
+                <small class="text-muted mt-2">
+                    <i class="bi bi-info-circle"></i> Username Anda: <strong>{{ username }}</strong> (anonymous)
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const username = '{{ username }}';
+const room = '{{ room }}';
+const socket = io();
+
+let isFirstMessage = true;
+
+// Join room saat load
+socket.on('connect', () => {
+    console.log('Connected to server');
+    socket.emit('join', { room: room });
+});
+
+// Handle incoming messages
+socket.on('message', function(data) {
+    const messagesDiv = document.getElementById('messages');
+    
+    // Hapus pesan "belom ada pesan" jika ada
+    if (isFirstMessage) {
+        messagesDiv.innerHTML = '';
+        isFirstMessage = false;
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = data.is_system ? 'text-center my-2' : 'mb-2';
+    
+    if (data.is_system) {
+        messageDiv.innerHTML = `
+            <small class="text-muted fst-italic">
+                <i class="bi bi-info-circle"></i> ${data.message}
+            </small>
+        `;
+    } else {
+        const isMyMessage = data.username === username;
+        messageDiv.innerHTML = `
+            <div class="d-flex ${isMyMessage ? 'justify-content-end' : 'justify-content-start'}">
+                <div class="${isMyMessage ? 'bg-primary text-white' : 'bg-white'} 
+                            p-2 rounded shadow-sm" 
+                     style="max-width: 70%; ${isMyMessage ? '' : 'border: 1px solid #dee2e6'}">
+                    <small class="${isMyMessage ? 'text-white-50' : 'text-primary fw-bold'}">
+                        ${data.username}
+                    </small>
+                    <p class="mb-1 ${isMyMessage ? 'text-white' : 'text-dark'}">${data.message}</p>
+                    <small class="${isMyMessage ? 'text-white-50' : 'text-muted'}" style="font-size: 0.75rem;">
+                        ${data.timestamp}
+                    </small>
+                </div>
+            </div>
+        `;
+    }
+    
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (message) {
+        socket.emit('send_message', {
+            room: room,
+            message: message
+        });
+        input.value = '';
+        input.focus();
+    }
+}
+
+// Kirim pesan dengan Enter
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+// Leave room saat close
+window.addEventListener('beforeunload', () => {
+    socket.emit('leave', { room: room });
+});
+</script>
+{% endblock %}

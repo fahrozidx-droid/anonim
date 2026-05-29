@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Anonymous Chat Campus{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-body p-5 text-center">
+                <h1 class="display-4 mb-4">
+                    <i class="bi bi-chat-dots-fill text-primary"></i>
+                </h1>
+                <h2 class="mb-3">Anonymous Chat Kampus</h2>
+                <p class="lead text-muted mb-4">
+                    Chat secara anonymous dengan mahasiswa kampus Anda. 
+                    Tidak perlu login, tetap anonim!
+                </p>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Username Anda: <strong>{{ username }}</strong> 
+                    <small>(otomatis generated, anonymous)</small>
+                </div>
+
+                <hr class="my-4">
+
+                <h4 class="mb-3">Pilih Ruangan Chat:</h4>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <a href="/chat/general" class="btn btn-outline-primary w-100 p-3">
+                            <i class="bi bi-people-fill"></i><br>
+                            <strong>General</strong><br>
+                            <small>Chat umum semua mahasiswa</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/chat/academic" class="btn btn-outline-primary w-100 p-3">
+                            <i class="bi bi-book-fill"></i><br>
+                            <strong>Academic</strong><br>
+                            <small>Bicara tentang kuliah & tugas</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/chat/faculty" class="btn btn-outline-primary w-100 p-3">
+                            <i class="bi bi-building-fill"></i><br>
+                            <strong>Faculty</strong><br>
+                            <small>Fakultas & jurusan</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="/chat/activities" class="btn btn-outline-primary w-100 p-3">
+                            <i class="bi bi-calendar-event-fill"></i><br>
+                            <strong>Activities</strong><br>
+                            <small>Event & kegiatan kampus</small>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <input type="text" id="customRoom" class="form-control mb-2" 
+                           placeholder="Atau buat ruangan sendiri (contoh: biology101)">
+                    <button onclick="joinCustomRoom()" class="btn btn-success w-100">
+                        <i class="bi bi-plus-circle"></i> Masuk Ruangan Custom
+                    </button>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Remember:</strong> 
+                    Bersikap sopan! Meskipun anonymous, tetap hormati orang lain.
+                    Tidak boleh konten SARA, pornografi, atau ujaran kebencian.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Online Users -->
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-people-fill"></i> Online Users 
+                    <span id="userCount" class="badge bg-light text-dark">0</span>
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                <div id="onlineUsersList">
+                    <p class="text-muted text-center">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning-fill"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <button onclick="showPrivateMessageModal()" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-envelope-fill"></i> Private Message
+                </button>
+                <a href="/chat/general" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-chat-left-text-fill"></i> General Chat
+                </a>
+                <a href="/chat/academic" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-book-fill"></i> Academic Chat
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Private Message Modal -->
+<div class="modal fade" id="privateMessageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-envelope-fill"></i> Kirim Private Message
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select class="form-select" id="privateMessageUser">
+                    <option value="">Pilih user...</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" onclick="startPrivateChat()">
+                    <i class="bi bi-chat-left-text-fill"></i> Mulai Chat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function joinCustomRoom() {
+    const roomName = document.getElementById('customRoom').value.trim();
+    if (roomName) {
+        window.location.href = '/chat/' + encodeURIComponent(roomName.toLowerCase().replace(/\s+/g, '-'));
+    } else {
+        alert('Please masukkan nama ruangan!');
+    }
+}
+
+function showPrivateMessageModal() {
+    const modal = new bootstrap.Modal(document.getElementById('privateMessageModal'));
+    modal.show();
+}
+
+function startPrivateChat() {
+    const recipient = document.getElementById('privateMessageUser').value;
+    if (recipient) {
+        window.location.href = '/private/' + encodeURIComponent(recipient);
+    } else {
+        alert('Please pilih user!');
+    }
+}
+
+// Update online users list
+function updateOnlineUsers(users) {
+    const list = document.getElementById('onlineUsersList');
+    const count = document.getElementById('userCount');
+    const select = document.getElementById('privateMessageUser');
+    
+    count.textContent = users.length;
+    
+    if (users.length === 0) {
+        list.innerHTML = '<p class="text-muted text-center">Belum ada user online</p>';
+        select.innerHTML = '<option value="">Belum ada user online</option>';
+        return;
+    }
+    
+    // Update list
+    list.innerHTML = users.map(user => `
+        <div class="d-flex align-items-center mb-2 p-2 border rounded">
+            <div class="flex-shrink-0">
+                <span class="badge bg-success">
+                    <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+                </span>
+            </div>
+            <div class="flex-grow-1 ms-2">
+                <strong>${user}</strong>
+            </div>
+            <a href="/private/${encodeURIComponent(user)}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-envelope-fill"></i>
+            </a>
+        </div>
+    `).join('');
+    
+    // Update select dropdown
+    select.innerHTML = '<option value="">Pilih user...</option>' + 
+        users.map(user => `<option value="${user}">${user}</option>`).join('');
+}
+
+// Socket.IO untuk online users
+const socket = io();
+
+socket.on('online_users_update', function(data) {
+    updateOnlineUsers(data.users);
+});
+
+// Initial load
+socket.on('connect', function() {
+    console.log('Connected to server');
+});
+</script>
+{% endblock %}

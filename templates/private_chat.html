@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Private Chat dengan {{ recipient }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-lock-fill"></i> 
+                    <strong>PRIVATE CHAT</strong> dengan {{ recipient }}
+                </h5>
+                <div>
+                    <a href="/" class="btn btn-sm btn-light">
+                        <i class="bi bi-house-fill"></i> Home
+                    </a>
+                    <a href="/" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-body" style="height: 550px; display: flex; flex-direction: column;">
+                <!-- Info bahwa ini private chat -->
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong>Private Message:</strong> Pesan ini hanya bisa dilihat oleh Anda dan {{ recipient }}.
+                    Tetap bertanggung jawab meskipun private!
+                </div>
+
+                <!-- Area Pesan -->
+                <div id="messages" class="flex-grow-1 overflow-auto mb-3 p-3 border rounded" 
+                     style="background-color: #fff3cd;">
+                    <div class="text-center text-muted mt-5">
+                        <i class="bi bi-lock" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Mulai percakapan private dengan {{ recipient }}</p>
+                    </div>
+                </div>
+
+                <!-- Form Input Pesan -->
+                <div>
+                    <div class="input-group">
+                        <input type="text" id="messageInput" class="form-control" 
+                               placeholder="Ketik pesan private..." autocomplete="off">
+                        <button id="sendBtn" class="btn btn-danger" onclick="sendMessage()">
+                            <i class="bi bi-send-fill"></i> Kirim Private
+                        </button>
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="bi bi-person-fill"></i> Anda: <strong>{{ username }}</strong> 
+                        → <strong>{{ recipient }}</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const username = '{{ username }}';
+const recipient = '{{ recipient }}';
+const socket = io();
+
+let isFirstMessage = true;
+
+// Join private room
+socket.on('connect', () => {
+    console.log('Connected to server');
+    const privateRoom = `private_${username}_${recipient}`;
+    socket.emit('join', { room: privateRoom });
+});
+
+// Handle chat history
+socket.on('chat_history', function(messages) {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    isFirstMessage = false;
+    
+    messages.forEach(data => {
+        addMessageToDisplay(data);
+    });
+    
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+// Handle incoming messages
+socket.on('message', function(data) {
+    // Only show private messages for this recipient
+    if (data.is_private && (data.recipient === recipient || data.username === recipient)) {
+        const messagesDiv = document.getElementById('messages');
+        
+        if (isFirstMessage) {
+            messagesDiv.innerHTML = '';
+            isFirstMessage = false;
+        }
+
+        addMessageToDisplay(data);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+});
+
+function addMessageToDisplay(data) {
+    const messagesDiv = document.getElementById('messages');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'mb-2';
+    
+    const isMyMessage = data.username === username;
+    const isFromRecipient = data.username === recipient;
+    
+    let fileHtml = '';
+    if (data.file_path) {
+        const filename = data.file_path.split('/').pop();
+        fileHtml = `
+            <div class="mt-2">
+                <a href="${data.file_path}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-paperclip"></i> ${filename}
+                </a>
+            </div>
+        `;
+    }
+    
+    messageDiv.innerHTML = `
+        <div class="d-flex ${isMyMessage ? 'justify-content-end' : 'justify-content-start'}">
+            <div class="${isMyMessage ? 'bg-danger text-white' : 'bg-white'} 
+                        p-2 rounded shadow-sm" 
+                 style="max-width: 70%; ${isMyMessage ? '' : 'border: 1px solid #dee2e6'}">
+                <small class="${isMyMessage ? 'text-white-50' : 'text-danger fw-bold'}">
+                    ${data.username}
+                </small>
+                ${data.message ? `<p class="mb-1 ${isMyMessage ? 'text-white' : 'text-dark'}">${data.message}</p>` : ''}
+                ${fileHtml}
+                <small class="${isMyMessage ? 'text-white-50' : 'text-muted'}" style="font-size: 0.75rem;">
+                    ${data.timestamp}
+                </small>
+            </div>
+        </div>
+    `;
+    
+    messagesDiv.appendChild(messageDiv);
+}
+
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (message) {
+        socket.emit('send_private_message', {
+            recipient: recipient,
+            message: message
+        });
+        input.value = '';
+        input.focus();
+    }
+}
+
+// Kirim pesan dengan Enter
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+</script>
+{% endblock %}
